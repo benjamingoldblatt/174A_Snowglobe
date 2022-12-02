@@ -119,9 +119,6 @@ export class Snowglobe extends Scene {
             this.pos.push(p);
         }
     }
-    delay(time) {
-        return new Promise(resolve => setTimeout(resolve, time));
-    }
 
 
     display(context, program_state) {
@@ -242,11 +239,22 @@ export class Snowglobe extends Scene {
 
         if (this.reset || (this.sG && this.resettime == 0)) {
             this.resettime = program_state.animation_time / 1000;
-                program_state.set_camera(this.initial_camera_location.times(Mat4.translation(0, 10, -40)));
-                this.delay(.5);
-                program_state.set_camera(this.initial_camera_location.times(Mat4.translation(5, 5, -40)));
-            this.delay(.5);
-                program_state.set_camera(this.initial_camera_location.times(Mat4.translation(-5, -5, -40)));
+
+            let cam_location = Mat4.look_at(vec3(0, 10, 30), vec3(0, 0, 0), vec3(0, 1, 1));
+            setTimeout(() => {  program_state.set_camera(cam_location.times(Mat4.translation(5, 5, -40))); }, 200);
+
+            cam_location = Mat4.look_at(vec3(4, 5, 30), vec3(0, 5, 0), vec3(0, 1, 1));
+            setTimeout(() => {  program_state.set_camera(cam_location.times(Mat4.translation(-5, -5, -30))); }, 400);
+
+            cam_location = Mat4.look_at(vec3(0, 5, 20), vec3(1, 1, 0), vec3(1, 1, 0));
+            setTimeout(() => {  program_state.set_camera(cam_location.times(Mat4.translation(-5, 0, -45))); }, 600);
+
+            cam_location = Mat4.look_at(vec3(0, 10, 30), vec3(0, 5, 0), vec3(0, 1, 1));
+            setTimeout(() => {  program_state.set_camera(cam_location.times(Mat4.translation(4, -10, -35))); }, 800);
+
+            cam_location = Mat4.look_at(vec3(0, 10, 30), vec3(0, -5, 0), vec3(0, 1, 1));
+            setTimeout(() => { program_state.set_camera(this.initial_camera_location.times(Mat4.translation(0, -15, -40))); }, 1000);
+
 
             this.reset = false;
         }
