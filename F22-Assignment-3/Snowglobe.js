@@ -234,10 +234,18 @@ export class Snowglobe extends Scene {
             }
         }
 
-        program_state.lights = [];
+        let t = program_state.animation_time / 1000, dt = program_state.animation_delta_time / 1000;
+
+         program_state.lights = [];
 
         program_state.projection_transform = Mat4.perspective(
             Math.PI / 4, context.width / context.height, .1, 1000);
+
+
+        model_transform = model_transform.times(Mat4.translation(7,20,0)).times(Mat4.scale(1.5,1.5,1.5));
+        program_state.lights.push(new Light(vec4(7,20,0,1), color(0, 0, 0, 1), 10));
+        //this.shapes.sphere.draw(context, program_state, model_transform, this.materials.lamp);
+
 
         // TODO: lamps, trees
         const lamp_color = hex_color("#ffd478");
@@ -252,7 +260,7 @@ export class Snowglobe extends Scene {
         this.shapes.sphere.draw(context, program_state, model_transform, this.materials.lamp);
         model_transform = mT.times(Mat4.translation(8, -3, 10)).times(Mat4.rotation(Math.PI / 2, 1, 0 ,0)).times(Mat4.scale(.08, .08, 4));
         this.shapes.cylinder.draw(context, program_state, model_transform, this.materials.test.override({color: hex_color("#000000")}));
-
+        //left tree
         model_transform = mT.times(Mat4.translation(-7, -1, 7)).times(Mat4.scale(1, 1, 1)).times(Mat4.rotation(Math.PI / 2, -1, 0,0));
         this.shapes.cone.draw(context, program_state, model_transform, this.materials.test2.override({color: hex_color("#1f5204")}));
         model_transform = mT.times(Mat4.translation(-7, -1.8, 7)).times(Mat4.scale(1.1, .9, 1.1)).times(Mat4.rotation(Math.PI / 2, -1, 0,0));
@@ -261,7 +269,18 @@ export class Snowglobe extends Scene {
         this.shapes.cone.draw(context, program_state, model_transform, this.materials.test2.override({color: hex_color("#1f5204")}));
         model_transform = mT.times(Mat4.translation(-7, -5, 7)).times(Mat4.rotation(Math.PI / 2, 1, 0 ,0)).times(Mat4.scale(.4, .4, 3));
         this.shapes.cylinder.draw(context, program_state, model_transform, this.materials.test.override({color: hex_color("#522604")}));
+        //right tree
+        model_transform = mT.times(Mat4.translation(14, -1, 7)).times(Mat4.scale(1, 1, 1)).times(Mat4.rotation(Math.PI / 2, -1, 0,0));
+        this.shapes.cone.draw(context, program_state, model_transform, this.materials.test2.override({color: hex_color("#1f5204")}));
+        model_transform = mT.times(Mat4.translation(14, -1.8, 7)).times(Mat4.scale(1.1, .9, 1.1)).times(Mat4.rotation(Math.PI / 2, -1, 0,0));
+        this.shapes.cone.draw(context, program_state, model_transform, this.materials.test2.override({color: hex_color("#1f5204")}));
+        model_transform = mT.times(Mat4.translation(14, -2.5, 7)).times(Mat4.scale(1.3, .9, 1.3)).times(Mat4.rotation(Math.PI / 2, -1, 0,0));
+        this.shapes.cone.draw(context, program_state, model_transform, this.materials.test2.override({color: hex_color("#1f5204")}));
+        model_transform = mT.times(Mat4.translation(14, -4, 7)).times(Mat4.rotation(Math.PI / 2, 1, 0 ,0)).times(Mat4.scale(.4, .4, 2));
+        this.shapes.cylinder.draw(context, program_state, model_transform, this.materials.test.override({color: hex_color("#522604")}));
 
+        
+        
 
         // Royce Hall building
         model_transform = mT;
@@ -307,17 +326,47 @@ export class Snowglobe extends Scene {
         this.shapes.pillar.draw(context, program_state, model_transform, this.materials.royce); //right base
         model_transform = model_transform.times(Mat4.translation(42,0,0));
         this.shapes.pillar.draw(context, program_state, model_transform, this.materials.royce); //right base
+        
+        model_transform = mT.times(Mat4.translation(4, -5, 8).times(Mat4.scale(2.5, 0.05, 10))); //center pathway
+        this.shapes.pillar.draw(context, program_state, model_transform, this.materials.royce)
 
         //TODO: ground (Interior of globe must be drawn before the glass sphere to be visible)
         model_transform = mT.times(Mat4.translation(4, -5, -0.4)).times(Mat4.rotation(Math.PI * .5, 1, 0, 0)).times(Mat4.scale(19.3,19.3,1/4));
-        this.shapes.circle.draw(context, program_state, model_transform, this.materials.test);
-        this.shapes.cylinder.draw(context, program_state, model_transform, this.materials.test);
+
+        this.shapes.circle.draw(context, program_state, model_transform, this.materials.snow);
+        this.shapes.cylinder.draw(context, program_state, model_transform, this.materials.snow);
+
+        if (this.reset || (this.sG && this.resettime == 0)) {
+            this.resettime = program_state.animation_time / 1000;
+
+            let cam_location = Mat4.look_at(vec3(0, 10, 30), vec3(0, 0, 0), vec3(0, 1, 1));
+            setTimeout(() => {  program_state.set_camera(cam_location.times(Mat4.translation(5, 5, -40))); }, 200);
+
+            cam_location = Mat4.look_at(vec3(4, 5, 30), vec3(0, 5, 0), vec3(0, 1, 1));
+            setTimeout(() => {  program_state.set_camera(cam_location.times(Mat4.translation(-5, -5, -30))); }, 400);
+
+            cam_location = Mat4.look_at(vec3(0, 5, 20), vec3(1, 1, 0), vec3(1, 1, 0));
+            setTimeout(() => {  program_state.set_camera(cam_location.times(Mat4.translation(-5, 0, -45))); }, 600);
+
+            cam_location = Mat4.look_at(vec3(0, 10, 30), vec3(0, 5, 0), vec3(0, 1, 1));
+            setTimeout(() => {  program_state.set_camera(cam_location.times(Mat4.translation(4, -10, -35))); }, 800);
+
+            cam_location = Mat4.look_at(vec3(0, 10, 30), vec3(0, -5, 0), vec3(0, 1, 1));
+            setTimeout(() => { program_state.set_camera(this.initial_camera_location.times(Mat4.translation(0, -15, -40))); }, 1000);
+
+
+            this.reset = false;
+        }
+        t = t - this.resettime;
+
         while (t > 90) //reset after 90 seconds
             t = t-90;
-        for (let i = 0; i < t; i++) {
-            model_transform = model_transform.times(Mat4.translation(0,0,-0.1)).times(Mat4.scale(1.0007,1.0007,1));
-            this.shapes.circle.draw(context, program_state, model_transform, this.materials.snow);
-            this.shapes.cylinder.draw(context, program_state, model_transform, this.materials.snow);
+        if (this.sG) {
+            for (let i = 0; i < t; i++) {
+                model_transform = model_transform.times(Mat4.translation(0,0,-0.1)).times(Mat4.scale(1.0007,1.0007,1));
+                this.shapes.circle.draw(context, program_state, model_transform, this.materials.snow);
+                this.shapes.cylinder.draw(context, program_state, model_transform, this.materials.snow);
+            }
         }
         program_state.lights.pop();
         program_state.lights.pop();
