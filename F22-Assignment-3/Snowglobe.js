@@ -234,7 +234,6 @@ export class Snowglobe extends Scene {
             }
         }
 
-        let t = program_state.animation_time / 1000, dt = program_state.animation_delta_time / 1000;
 
          program_state.lights = [];
 
