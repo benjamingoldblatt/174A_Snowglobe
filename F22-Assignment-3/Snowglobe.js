@@ -105,6 +105,7 @@ export class Snowglobe extends Scene {
 
     shake_to_reset() {
         this.reset = true;
+        this.snow_generator();
     }
 
     my_mouse_down(e, pos, context, program_state) {
