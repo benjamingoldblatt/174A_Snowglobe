@@ -23,6 +23,9 @@ export class Snowglobe extends Scene {
         this.pos_ndcs_near = vec4(0,0,0,0);
         this.cumalative_clicks = [];
 
+        this.resettime = 0;
+        this.reset = false;
+
         // At the beginning of our program, load one of each of these shape definitions onto the GPU.
         this.shapes = {
             torus: new defs.Torus(15, 30),
@@ -34,7 +37,7 @@ export class Snowglobe extends Scene {
             cone: new defs.Closed_Cone(1, 15),
             pillar: new defs.Cube(),
             triangle: new defs.Triangle(),
-            cylinder: new defs.Cylindrical_Tube(1, 30),
+            cylinder: new defs.Cylindrical_Tube(1, 30)
         }
 
         // *** Materials
@@ -43,11 +46,10 @@ export class Snowglobe extends Scene {
                 {ambient: 0.4, diffusivity: 1, specularity: 1, color : hex_color("#ffffff")}),
             test2: new Material(new Gouraud_Shader(),
                 {ambient: .2, diffusivity: 1, specularity: 1, color: hex_color("#992828")}),
-            ring: new Material(new Ring_Shader()),
             // TODO:  Fill in as many additional material objects as needed in this key/value table.
             //        (Requirement 4)
             glass: new Material(new defs.Phong_Shader(),
-                {ambient: 0.01, diffusivity: 0.30, specularity: 1, color: vec4(0.827,0.914,0.929, .3)}),
+                {   ambient: 0.01, diffusivity: 0.30, specularity: 1, color: vec4(0.827,0.914,0.929, .3)}),
             royce: new Material(new defs.Phong_Shader(),
                 {   ambient: 0.8,
                     diffusivity: 1,
@@ -68,10 +70,15 @@ export class Snowglobe extends Scene {
                 {   color: hex_color("#000000"),
                     ambient: 1,
                     texture: new Texture("assets/royce_base.png", "NEAREST")}),
+            path: new Material(new Textured_Phong,
+                {   color: hex_color("#000000"),
+                    ambient: 1,
+                    texture: new Texture("assets/royce_path.png", "NEAREST")}),
             snow: new Material(new defs.Fake_Bump_Map(3), {
                 color: hex_color("#000000"),
                 ambient: 1,
                 texture: new Texture("assets/snowy_ground.png", "NEAREST")}),
+
             cone: new Material(new Gouraud_Shader(),
                 {ambient: 0.8, diffusivity: 1, color: hex_color("#c49a77")}),
             middle: new Material(new Gouraud_Shader(),
@@ -79,8 +86,9 @@ export class Snowglobe extends Scene {
             snowfall: new Material(new Snow_Shader(),
                 {color: hex_color("#ffffff"), op: .4}),
             lamp: new Material(new defs.Phong_Shader(),
-                 {ambient: 1, diffusivity: 0, color: hex_color("#f7d497")}),
+                {ambient: 1, diffusivity: 0, color: hex_color("#f7d497")})
         }
+
 
         this.initial_camera_location = Mat4.look_at(vec3(0, 10, 30), vec3(0, 0, 0), vec3(0, 1, 0)).times(Mat4.translation(0, -15, -40));
     }
@@ -92,6 +100,11 @@ export class Snowglobe extends Scene {
         this.key_triggered_button("View inside", ["Control", "1"], () => this.attached = () => this.planet_1);
         this.key_triggered_button("Generate snow", ["Control", "2"], this.snow_generator);
         this.new_line();
+        this.key_triggered_button("Shake to reset", ["Control", "3"], this.shake_to_reset);
+    }
+
+    shake_to_reset() {
+        this.reset = true;
     }
 
     my_mouse_down(e, pos, context, program_state) {
@@ -107,10 +120,11 @@ export class Snowglobe extends Scene {
         this.end_time = (program_state.animation_time + 300) / 1000;
     }
 
+
     snow_generator() {
         this.sG = true;
-        this.pos = [];
-        this.pos2 = [];
+        let emptyPos = [];
+        this.pos = emptyPos;
 
         for (let j = 0; j < this.snow_amount; j++) {
             let px = Math.random() * Math.pow(-1, Math.floor(Math.random() * 10));
@@ -130,25 +144,6 @@ export class Snowglobe extends Scene {
             p.push(px, py, pz);
             this.pos.push(p);
         }
-
-        for (let j = 0; j < this.snow_amount; j++) {
-            let px = Math.random() * Math.pow(-1, Math.floor(Math.random() * 10));
-            let py = Math.random(); // only positive y hemisphere generates snow
-            let pz = Math.random() * Math.pow(-1, Math.floor(Math.random() * 10));
-            if (px == 0 && py == 0 && pz == 0) {
-                px = Math.random();
-                py = Math.random();
-                pz = Math.random();
-            }
-            let c = (1 / (Math.sqrt(px * px + py * py + pz * pz)));
-            px = px * c * 21;
-            py = py * c * 21;
-            pz = pz * c * 21;
-
-            let p = [];
-            p.push(px, py, pz);
-            this.pos2.push(p);
-        }
     }
 
 
@@ -158,8 +153,10 @@ export class Snowglobe extends Scene {
         if (!context.scratchpad.controls) {
             this.children.push(context.scratchpad.controls = new defs.Movement_Controls());
             // Define the global camera and projection matrices, which are stored in program_state.
-            program_state.set_camera(this.initial_camera_location);
+            program_state.set_camera(this.initial_camera_location.times(Mat4.translation(0, -15, -40)));
         }
+        let model_transform = Mat4.identity();
+
         let canvas = context.canvas;
         const mouse_position = (e, rect = canvas.getBoundingClientRect()) =>
             vec((e.clientX - (rect.left + rect.right) / 2) / ((rect.right - rect.left) / 2),
@@ -180,7 +177,6 @@ export class Snowglobe extends Scene {
         });
 
         let t = program_state.animation_time / 1000, dt = program_state.animation_delta_time / 1000;
-        let model_transform = Mat4.identity();
         let mT = Mat4.identity();
 
         if(!this.pan) {
@@ -235,7 +231,7 @@ export class Snowglobe extends Scene {
         }
 
 
-         program_state.lights = [];
+        program_state.lights = [];
 
         program_state.projection_transform = Mat4.perspective(
             Math.PI / 4, context.width / context.height, .1, 1000);
@@ -247,17 +243,20 @@ export class Snowglobe extends Scene {
 
 
         // TODO: lamps, trees
+        model_transform = Mat4.identity();
         const lamp_color = hex_color("#ffd478");
         let lamp_size = 1.5;
         program_state.lights.push(new Light(vec4(-1,-2,10,1), lamp_color, 10**lamp_size));
         program_state.lights.push(new Light(vec4(8,-2,10,1), lamp_color, 10**lamp_size));
+        mT = Mat4.identity();
+        mT = mT.times(Mat4.translation(0,-1,0));
         model_transform = mT.times(Mat4.translation(-1, -1, 10)).times(Mat4.scale(.5,.5,.5));
         this.shapes.sphere.draw(context, program_state, model_transform, this.materials.lamp);
         model_transform = mT.times(Mat4.translation(-1, -3, 10)).times(Mat4.rotation(Math.PI / 2, 1, 0 ,0)).times(Mat4.scale(.08, .08, 4));
         this.shapes.cylinder.draw(context, program_state, model_transform, this.materials.test.override({color: hex_color("#000000")}));
-        model_transform = mT.times(Mat4.translation(8, -1, 10)).times(Mat4.scale(.5,.5,.5));
+        model_transform = mT.times(Mat4.translation(9, -1, 10)).times(Mat4.scale(.5,.5,.5));
         this.shapes.sphere.draw(context, program_state, model_transform, this.materials.lamp);
-        model_transform = mT.times(Mat4.translation(8, -3, 10)).times(Mat4.rotation(Math.PI / 2, 1, 0 ,0)).times(Mat4.scale(.08, .08, 4));
+        model_transform = mT.times(Mat4.translation(9, -3, 10)).times(Mat4.rotation(Math.PI / 2, 1, 0 ,0)).times(Mat4.scale(.08, .08, 4));
         this.shapes.cylinder.draw(context, program_state, model_transform, this.materials.test.override({color: hex_color("#000000")}));
         //left tree
         model_transform = mT.times(Mat4.translation(-7, -1, 7)).times(Mat4.scale(1, 1, 1)).times(Mat4.rotation(Math.PI / 2, -1, 0,0));
@@ -266,7 +265,7 @@ export class Snowglobe extends Scene {
         this.shapes.cone.draw(context, program_state, model_transform, this.materials.test2.override({color: hex_color("#1f5204")}));
         model_transform = mT.times(Mat4.translation(-7, -2.5, 7)).times(Mat4.scale(1.3, .9, 1.3)).times(Mat4.rotation(Math.PI / 2, -1, 0,0));
         this.shapes.cone.draw(context, program_state, model_transform, this.materials.test2.override({color: hex_color("#1f5204")}));
-        model_transform = mT.times(Mat4.translation(-7, -5, 7)).times(Mat4.rotation(Math.PI / 2, 1, 0 ,0)).times(Mat4.scale(.4, .4, 3));
+        model_transform = mT.times(Mat4.translation(-7, -4, 7)).times(Mat4.rotation(Math.PI / 2, 1, 0 ,0)).times(Mat4.scale(.4, .4, 2));
         this.shapes.cylinder.draw(context, program_state, model_transform, this.materials.test.override({color: hex_color("#522604")}));
         //right tree
         model_transform = mT.times(Mat4.translation(14, -1, 7)).times(Mat4.scale(1, 1, 1)).times(Mat4.rotation(Math.PI / 2, -1, 0,0));
@@ -278,8 +277,6 @@ export class Snowglobe extends Scene {
         model_transform = mT.times(Mat4.translation(14, -4, 7)).times(Mat4.rotation(Math.PI / 2, 1, 0 ,0)).times(Mat4.scale(.4, .4, 2));
         this.shapes.cylinder.draw(context, program_state, model_transform, this.materials.test.override({color: hex_color("#522604")}));
 
-        
-        
 
         // Royce Hall building
         model_transform = mT;
@@ -317,21 +314,23 @@ export class Snowglobe extends Scene {
 
         model_transform = model_transform.times(Mat4.translation(0,0,-7)).times(Mat4.scale(5/3,1,6));
         this.shapes.pillar.draw(context, program_state, model_transform, this.materials.middle); //middle grey block
+
         model_transform = model_transform.times(Mat4.scale(1,1/2,1)).times(Mat4.translation(1,-1,-1/3));
         this.shapes.pillar.draw(context, program_state, model_transform, this.materials.middle); //right grey block
+
         model_transform = model_transform.times(Mat4.translation(-2,0,0));
         this.shapes.pillar.draw(context, program_state, model_transform, this.materials.middle); //left grey block
+
         model_transform = model_transform.times(Mat4.scale(1/10,1,1)).times(Mat4.translation(-11,0,0));
         this.shapes.pillar.draw(context, program_state, model_transform, this.materials.royce); //right base
         model_transform = model_transform.times(Mat4.translation(42,0,0));
         this.shapes.pillar.draw(context, program_state, model_transform, this.materials.royce); //right base
-        
-        model_transform = mT.times(Mat4.translation(4, -5, 8).times(Mat4.scale(2.5, 0.05, 10))); //center pathway
-        this.shapes.pillar.draw(context, program_state, model_transform, this.materials.royce)
+
+        model_transform = mT.times(Mat4.translation(4, -5, 6).times(Mat4.scale(2.5, 0.05, 7))); //center pathway
+        this.shapes.pillar.draw(context, program_state, model_transform, this.materials.path)
 
         //TODO: ground (Interior of globe must be drawn before the glass sphere to be visible)
         model_transform = mT.times(Mat4.translation(4, -5, -0.4)).times(Mat4.rotation(Math.PI * .5, 1, 0, 0)).times(Mat4.scale(19.3,19.3,1/4));
-
         this.shapes.circle.draw(context, program_state, model_transform, this.materials.snow);
         this.shapes.cylinder.draw(context, program_state, model_transform, this.materials.snow);
 
@@ -357,7 +356,6 @@ export class Snowglobe extends Scene {
             this.reset = false;
         }
         t = t - this.resettime;
-
         while (t > 90) //reset after 90 seconds
             t = t-90;
         if (this.sG) {
@@ -376,43 +374,19 @@ export class Snowglobe extends Scene {
         if ((Math.floor(t / (Math.PI))) % 2 == 0) {
             p = Math.abs(Math.cos(t / 2));
         }
-        let p2 = Math.abs(Math.sin(t / 3));
-        if ((Math.floor(t / (3 * Math.PI / 2))) % 2 == 0) {
-            p2 = Math.abs(Math.cos(t / 3));
-        }
-
-
         if (this.sG) {
             //apply randomly generated positions
             for (let i = 0; i < this.snow_amount; i++) {
+                let r = Math.random();
                 let qx = this.pos[i][0];
                 let qy = this.pos[i][1];
                 let qz = this.pos[i][2];
-                model_transform = mT
-                    .times(Mat4.translation(qx + 4, qy * p + 5, qz))
-                    .times(Mat4.translation(-1, 0 , 0))
-                    .times(Mat4.rotation(Math.sin(qy * t / 5), 0, 1, 0))
-                    .times(Mat4.translation(1, 0 , 0))
-                    .times(Mat4.scale(0.2, 0.2, 0.2));
-                this.shapes.sphere.draw(context, program_state, model_transform, this.materials.snowfall.override({op: 1 - Math.abs(Math.cos(t ))}));
-
+                model_transform = mT.times(Mat4.translation(qx + 4, qy * p + 5, qz)).times(Mat4.scale(0.2, 0.2, 0.2));
+                this.shapes.sphere.draw(context, program_state, model_transform, this.materials.snowfall.override({op: 1 - Math.abs(Math.cos(t))}));
             }
 
-            for (let i = 0; i < this.snow_amount; i++) {
-                let cx = this.pos2[i][0];
-                let cy = this.pos2[i][1];
-                let cz = this.pos2[i][2];
-                model_transform = mT
-                    .times(Mat4.translation(cx + 4, cy * p2 + 5, cz))
-                    .times(Mat4.translation(-1, 0 , 0))
-                    .times(Mat4.rotation(Math.sin(cy * t / 5), 0, 1, 0))
-                    .times(Mat4.translation(1, 0 , 0))
-                    .times(Mat4.scale(0.2, 0.2, 0.2));
-                this.shapes.sphere.draw(context, program_state, model_transform, this.materials.snowfall.override({op: 1 - Math.abs(Math.cos(t * 2 / 3))}));
-            }
-
-            if (Math.abs(Math.cos(t)) > .9999 && Math.abs(Math.cos(t * 2 / 3)) > .9999) this.snow_generator();
-       }
+            if (Math.abs(Math.cos(t)) > .9999) this.snow_generator();
+        }
 
 
 
@@ -433,8 +407,6 @@ export class Snowglobe extends Scene {
         this.shapes.cylinder.draw(context, program_state, model_transform, this.materials.test2);
         model_transform = mT.times(Mat4.translation(4, -13, 0)).times(Mat4.rotation(Math.PI * .5, 1, 0, 0)).times(Mat4.scale(22.4,22.4,0.1)).times(Mat4.rotation(Math.PI / 2, 0, 0, 1));
         this.shapes.torus.draw(context, program_state, model_transform, this.materials.test2.override({diffusivity: 1}));
-
-
     }
 }
 
