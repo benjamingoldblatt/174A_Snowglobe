@@ -124,8 +124,8 @@ export class Snowglobe extends Scene {
 
     snow_generator() {
         this.sG = true;
-        let emptyPos = [];
-        this.pos = emptyPos;
+        this.pos = [];
+        this.pos2 = [];
 
         for (let j = 0; j < this.snow_amount; j++) {
             let px = Math.random() * Math.pow(-1, Math.floor(Math.random() * 10));
@@ -144,6 +144,25 @@ export class Snowglobe extends Scene {
             let p = [];
             p.push(px, py, pz);
             this.pos.push(p);
+        }
+
+        for (let j = 0; j < this.snow_amount; j++) {
+            let px = Math.random() * Math.pow(-1, Math.floor(Math.random() * 10));
+            let py = Math.random(); // only positive y hemisphere generates snow
+            let pz = Math.random() * Math.pow(-1, Math.floor(Math.random() * 10));
+            if (px == 0 && py == 0 && pz == 0) {
+                px = Math.random();
+                py = Math.random();
+                pz = Math.random();
+            }
+            let c = (1 / (Math.sqrt(px * px + py * py + pz * pz)));
+            px = px * c * 21;
+            py = py * c * 21;
+            pz = pz * c * 21;
+
+            let p = [];
+            p.push(px, py, pz);
+            this.pos2.push(p);
         }
     }
 
@@ -375,19 +394,44 @@ export class Snowglobe extends Scene {
         if ((Math.floor(t / (Math.PI))) % 2 == 0) {
             p = Math.abs(Math.cos(t / 2));
         }
+        let p2 = Math.abs(Math.sin(t / 3));
+        if ((Math.floor(t / (3 * Math.PI / 2))) % 2 == 0) {
+            p2 = Math.abs(Math.cos(t / 3));
+        }
+
+
         if (this.sG) {
             //apply randomly generated positions
             for (let i = 0; i < this.snow_amount; i++) {
-                let r = Math.random();
                 let qx = this.pos[i][0];
                 let qy = this.pos[i][1];
                 let qz = this.pos[i][2];
-                model_transform = mT.times(Mat4.translation(qx + 4, qy * p + 5, qz)).times(Mat4.scale(0.2, 0.2, 0.2));
-                this.shapes.sphere.draw(context, program_state, model_transform, this.materials.snowfall.override({op: 1 - Math.abs(Math.cos(t))}));
+                model_transform = mT
+                    .times(Mat4.translation(qx + 4, qy * p + 5, qz))
+                    .times(Mat4.translation(-1, 0 , 0))
+                    .times(Mat4.rotation(Math.sin(qy * t / 5), 0, 1, 0))
+                    .times(Mat4.translation(1, 0 , 0))
+                    .times(Mat4.scale(0.2, 0.2, 0.2));
+                this.shapes.sphere.draw(context, program_state, model_transform, this.materials.snowfall.override({op: 1 - Math.abs(Math.cos(t ))}));
+
             }
 
-            if (Math.abs(Math.cos(t)) > .9999) this.snow_generator();
+            for (let i = 0; i < this.snow_amount; i++) {
+                let cx = this.pos2[i][0];
+                let cy = this.pos2[i][1];
+                let cz = this.pos2[i][2];
+                model_transform = mT
+                    .times(Mat4.translation(cx + 4, cy * p2 + 5, cz))
+                    .times(Mat4.translation(-1, 0 , 0))
+                    .times(Mat4.rotation(Math.sin(cy * t / 5), 0, 1, 0))
+                    .times(Mat4.translation(1, 0 , 0))
+                    .times(Mat4.scale(0.2, 0.2, 0.2));
+                this.shapes.sphere.draw(context, program_state, model_transform, this.materials.snowfall.override({op: 1 - Math.abs(Math.cos(t * 2 / 3))}));
+            }
+
+            if (Math.abs(Math.cos(t)) > .9999 && Math.abs(Math.cos(t * 2 / 3)) > .9999) this.snow_generator();
         }
+
 
 
 
